@@ -1,82 +1,80 @@
+import { useEffect, useRef, useState } from 'react'
 import Clouds from '../components/Clouds'
 
-function FeatureIcon({ kind }: { kind: 'mic' | 'shield' | 'sparkle' }) {
-  const cls = 'h-7 w-7'
-  if (kind === 'mic')
-    return (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={cls}>
-        <rect x="9" y="3" width="6" height="11" rx="3" />
-        <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
-      </svg>
-    )
-  if (kind === 'shield')
-    return (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={cls}>
-        <path d="M12 3l7 3v5c0 4.6-3 7.7-7 9.2-4-1.5-7-4.6-7-9.2V6l7-3z" />
-        <path d="M9 11.5l2.2 2.2L15.5 9.5" />
-      </svg>
-    )
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={cls}>
-      <path d="M12 4l1.7 4.8L18.5 10.5l-4.8 1.7L12 17l-1.7-4.8L5.5 10.5l4.8-1.7L12 4z" />
-      <path d="M18.5 16.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7.7-1.8z" />
-    </svg>
-  )
-}
-
-const FEATURES = [
-  {
-    icon: 'mic' as const,
-    title: 'Ramble it in',
-    body: 'Voice or text — the inbox sorts the mess into a plan while you pour the coffee.',
-  },
-  {
-    icon: 'shield' as const,
-    title: 'You stay the boss',
-    body: 'Approval rules mean nothing sends, books, or posts without your say-so.',
-  },
-  {
-    icon: 'sparkle' as const,
-    title: 'It remembers',
-    body: 'Your preferences, patterns, and corrections stick — Daylist gets better every day.',
-  },
-]
+const ROOM_CHIPS = ['rambles sorted', 'apps wired in', 'memories kept', 'messages sent']
 
 export default function Closing() {
+  const dioramaRef = useRef<HTMLDivElement>(null)
+  const [inView, setInView] = useState(false)
+
+  useEffect(() => {
+    const el = dioramaRef.current
+    if (!el) return
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setInView(true)
+          io.disconnect()
+        }
+      },
+      { threshold: 0.25 },
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
+
   return (
     <section id="get" className="sky-gradient relative flex min-h-[92svh] flex-col overflow-hidden">
       <Clouds count={4} />
 
-      <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-1 flex-col items-center px-6 pt-24 text-center sm:pt-32">
+      <div className="relative z-10 mx-auto flex w-full max-w-5xl flex-1 flex-col items-center px-6 pt-24 text-center sm:pt-32">
         <h2 className="font-display text-4xl font-semibold leading-[1.08] tracking-tight text-[#16334f] sm:text-6xl">
-          More time for
+          One little helper,
           <br />
-          the good stuff.
+          everywhere your day happens.
         </h2>
         <p className="mt-5 max-w-md text-lg font-semibold text-[#16334f]/65">
-          Daylist works through the apps you already use — Gmail, Calendar, Slack, Notion, Canva, and more.
+          Sorting the inbox, wiring through your apps, remembering everything, sending with your say-so.
         </p>
 
-        <div className="mt-12 grid w-full gap-4 sm:grid-cols-3">
-          {FEATURES.map((f, i) => (
-            <div
-              key={f.title}
-              className="glass animate-pop rounded-3xl p-6 text-left"
-              style={{ animationDelay: `${i * 0.1}s` }}
-            >
-              <span className="glass inline-flex h-12 w-12 items-center justify-center rounded-2xl text-[#2a5acc]">
-                <FeatureIcon kind={f.icon} />
+        {/* diorama — comes in on scroll */}
+        <div
+          ref={dioramaRef}
+          className="mt-12 w-full transition-all duration-1000 ease-[cubic-bezier(0.22,1,0.36,1)]"
+          style={{
+            opacity: inView ? 1 : 0,
+            transform: inView ? 'translateY(0) scale(1) rotate(0deg)' : 'translateY(90px) scale(0.9) rotate(1.5deg)',
+          }}
+        >
+          <div className="glass-deep rounded-[2.5rem] p-3 shadow-[0_40px_80px_-30px_rgba(22,51,79,0.35)] sm:p-4">
+            <img
+              src="/art/diorama.png"
+              alt="Daylist's little helper at work — sorting the inbox, wiring through your apps, keeping memories, and sending messages"
+              className={`w-full rounded-[2rem] ${inView ? 'animate-float' : ''}`}
+            />
+          </div>
+
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-2.5">
+            {ROOM_CHIPS.map((chip, i) => (
+              <span
+                key={chip}
+                className="glass-chip transition-all duration-700"
+                style={{
+                  transitionDelay: `${400 + i * 120}ms`,
+                  opacity: inView ? 1 : 0,
+                  transform: inView ? 'translateY(0)' : 'translateY(14px)',
+                }}
+              >
+                {chip}
               </span>
-              <p className="font-display mt-4 text-xl font-semibold text-[#16334f]">{f.title}</p>
-              <p className="mt-1.5 text-[15px] font-semibold leading-relaxed text-[#16334f]/60">{f.body}</p>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
         <a href="https://app.daylists.co" target="_blank" rel="noreferrer" className="glass-btn glass-btn-solid mt-12 !px-10 !py-4 !text-xl">
           Get the app
         </a>
-        <p className="mt-3 text-sm font-bold text-[#16334f]/50">free to start · your approvals, your rules</p>
+        <p className="mt-3 pb-16 text-sm font-bold text-[#16334f]/50">free to start · your approvals, your rules</p>
       </div>
 
       {/* meadow bookend */}
@@ -93,7 +91,7 @@ export default function Closing() {
         />
       </div>
 
-      <footer className="relative z-10 bg-[#4c6621]">
+      <footer className="relative z-10 bg-[#848531]">
         <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 px-6 py-5 text-sm font-bold text-white/85">
           <span>daylist · made with care © 2026</span>
           <span className="flex gap-5">
