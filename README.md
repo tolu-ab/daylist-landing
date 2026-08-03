@@ -7,12 +7,15 @@ Three sections: a 3D plush-meadow hero with giant display type and glassmorphic 
 an interactive demo (ramble a voice note → sorted inbox → delegate → Daylist runs →
 approval card → time handed back), and a closing section where a scroll-revealed
 isometric diorama shows the helper at work across inbox, apps, memory, and messages.
+The footer is a wide meadow scene: Daelist at his desk, back turned, working while
+people play and picnic around him.
 
 ## Stack
 
 React + TypeScript + Vite + Tailwind CSS 3 + shadcn/ui. The artwork is AI-generated
-2K renders (`public/art/hero-meadow.png`, `public/art/diorama.png` — too large for
-the git push API, not committed); sky, clouds, and motion are pure CSS/SVG.
+2K renders (`public/art/hero-meadow.png`, `public/art/diorama.png`,
+`public/art/footer-meadow.png` — too large for the git push API, not committed);
+sky, clouds, and motion are pure CSS/SVG.
 
 ## Develop
 
