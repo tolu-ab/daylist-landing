@@ -12,15 +12,14 @@ export function MintBlob({ size = 96, filterId = 'felt-mascot' }: { size?: numbe
           <feDisplacementMap in="SourceGraphic" in2="n" scale="9" />
         </filter>
         <radialGradient id={`${filterId}-g`} cx="35%" cy="25%" r="90%">
-          <stop offset="0%" stopColor="#a9ecc4" />
-          <stop offset="100%" stopColor="#54c489" />
+          <stop offset="0%" stopColor="#ffe49b" />
+          <stop offset="100%" stopColor="#f2b348" />
         </radialGradient>
       </defs>
       <g filter={`url(#${filterId})`}>
-        {/* sprout */}
-        <path d="M0,-58 C0,-66 0,-70 0,-74" stroke="#3ea96f" strokeWidth="5" strokeLinecap="round" fill="none" />
-        <ellipse cx="-9" cy="-76" rx="9" ry="5" fill="#54c489" transform="rotate(-28 -9 -76)" />
-        <ellipse cx="9" cy="-76" rx="9" ry="5" fill="#54c489" transform="rotate(28 9 -76)" />
+        {/* arms */}
+        <ellipse cx="-58" cy="10" rx="13" ry="9" fill={`url(#${filterId}-g)`} transform="rotate(24 -58 10)" />
+        <ellipse cx="58" cy="10" rx="13" ry="9" fill={`url(#${filterId}-g)`} transform="rotate(-24 58 10)" />
         {/* body */}
         <path
           d="M-58,10 C-58,-38 -30,-58 0,-58 C30,-58 58,-38 58,10 C58,34 40,52 20,54 C10,55 6,46 0,46 C-6,46 -10,55 -20,54 C-40,52 -58,34 -58,10 Z"
@@ -29,10 +28,11 @@ export function MintBlob({ size = 96, filterId = 'felt-mascot' }: { size?: numbe
         {/* sheen */}
         <ellipse cx="-22" cy="-30" rx="20" ry="12" fill="#ffffff" opacity="0.35" />
       </g>
-      {/* face (kept crisp, unfuzzed) */}
-      <circle cx="-17" cy="-12" r="4.6" fill={INK} />
-      <circle cx="17" cy="-12" r="4.6" fill={INK} />
-      <path d="M-10,5 Q0,13 10,5" stroke={INK} strokeWidth="4" strokeLinecap="round" fill="none" />
+      {/* face (kept crisp, unfuzzed) — laughing */}
+      <circle cx="-16" cy="-16" r="4.2" fill={INK} />
+      <circle cx="16" cy="-16" r="4.2" fill={INK} />
+      <ellipse cx="0" cy="6" rx="10" ry="12" fill={INK} />
+      <ellipse cx="0" cy="11" rx="6" ry="5" fill="#ff9d9d" />
     </svg>
   )
 }
