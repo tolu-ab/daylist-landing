@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react'
-import Clouds from '../components/Clouds'
 import { MintBlob } from '../components/Plush'
 
 type Phase = 'capture' | 'listening' | 'inbox' | 'running' | 'approval' | 'done'
@@ -191,15 +190,20 @@ export default function Demo() {
   }
 
   return (
-    <section id="demo" className="relative overflow-hidden bg-gradient-to-b from-[#eef8ff] via-[#f7fcff] to-[#eaf5ff] py-24 sm:py-32">
-      <Clouds count={3} />
+    <section id="demo" className="relative overflow-hidden bg-gradient-to-b from-palette-cream via-[#FFFCF5] to-palette-peach/50 py-24 sm:py-32">
+      {/* warm ambient glow — the sunlit-room counterpart to the sky sections either side */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
+        <div className="animate-float absolute -left-24 top-8 h-80 w-80 rounded-full bg-palette-peach/50 blur-3xl" />
+        <div className="animate-float absolute -right-20 top-1/3 h-96 w-96 rounded-full bg-palette-butter/45 blur-3xl" style={{ animationDelay: '-2.5s' }} />
+        <div className="animate-float absolute -bottom-16 left-1/4 h-72 w-72 rounded-full bg-palette-coral/40 blur-3xl" style={{ animationDelay: '-4.5s' }} />
+      </div>
 
       <div className="relative z-10 mx-auto max-w-2xl px-5 text-center">
         <span className="glass-chip animate-pop">a tiny demo</span>
-        <h2 className="font-display mt-5 text-4xl font-semibold tracking-tight text-[#16334f] sm:text-5xl">
+        <h2 className="font-display mt-5 text-4xl font-semibold tracking-tight text-[#111318] sm:text-5xl">
           Watch Daylist do the doing
         </h2>
-        <p className="mt-4 text-lg font-semibold text-[#16334f]/60">
+        <p className="mt-4 text-lg font-semibold text-[#111318]/60">
           Ramble it in, hand it over, keep the final say.
         </p>
       </div>
@@ -209,11 +213,11 @@ export default function Demo() {
         {/* device top bar */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-[#ff9d9d]" />
-            <span className="h-2.5 w-2.5 rounded-full bg-[#ffd97a]" />
-            <span className="h-2.5 w-2.5 rounded-full bg-[#8fe3b0]" />
+            <span className="h-2.5 w-2.5 rounded-full bg-palette-peach" />
+            <span className="h-2.5 w-2.5 rounded-full bg-palette-butter" />
+            <span className="h-2.5 w-2.5 rounded-full bg-palette-sky" />
           </div>
-          <span className="glass rounded-full px-3.5 py-1 text-xs font-extrabold uppercase tracking-widest text-[#16334f]/60">
+          <span className="glass rounded-full px-3.5 py-1 text-xs font-extrabold uppercase tracking-widest text-[#111318]/60">
             your morning inbox
           </span>
         </div>
@@ -228,7 +232,7 @@ export default function Demo() {
                   onChange={(e) => setTyped(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && submitTyped()}
                   placeholder="Dump a task here…"
-                  className="w-full bg-transparent text-base font-bold text-[#16334f] outline-none placeholder:text-[#16334f]/40"
+                  className="w-full bg-transparent text-base font-bold text-[#111318] outline-none placeholder:text-[#111318]/40"
                 />
                 {typed.trim() ? (
                   <button onClick={submitTyped} className="glass-btn glass-btn-solid !px-4 !py-2 !text-sm">
@@ -245,7 +249,7 @@ export default function Demo() {
                   </button>
                 )}
               </div>
-              <p className="mt-4 text-sm font-bold text-[#16334f]/50">
+              <p className="mt-4 text-sm font-bold text-[#111318]/50">
                 …or tap the mic and just ramble. Daylist sorts it out.
               </p>
             </div>
@@ -258,15 +262,15 @@ export default function Demo() {
                 {[0, 1, 2, 3, 4, 5, 6].map((i) => (
                   <span
                     key={i}
-                    className="wave-bar mx-0.5 inline-block h-6 w-1.5 rounded-full bg-[#54a6e8]"
+                    className="wave-bar mx-0.5 inline-block h-6 w-1.5 rounded-full bg-palette-sky"
                     style={{ animationDelay: `${i * 0.11}s` }}
                   />
                 ))}
-                <span className="ml-3 text-sm font-extrabold uppercase tracking-widest text-[#16334f]/50">
+                <span className="ml-3 text-sm font-extrabold uppercase tracking-widest text-[#111318]/50">
                   listening…
                 </span>
               </div>
-              <p className="mt-5 min-h-[3.5rem] text-left text-lg font-semibold italic leading-relaxed text-[#16334f]/80">
+              <p className="mt-5 min-h-[3.5rem] text-left text-lg font-semibold italic leading-relaxed text-[#111318]/80">
                 “{RAMBLE.slice(0, transcriptLen)}
                 <span className="animate-soft-pulse">▍</span>”
               </p>
@@ -276,7 +280,7 @@ export default function Demo() {
           {/* -------- inbox -------- */}
           {phase === 'inbox' && (
             <div className="animate-pop">
-              <p className="mb-4 text-left text-sm font-extrabold uppercase tracking-widest text-[#16334f]/50">
+              <p className="mb-4 text-left text-sm font-extrabold uppercase tracking-widest text-[#111318]/50">
                 sorted for you — hand one over
               </p>
               <div className="space-y-3">
@@ -286,7 +290,7 @@ export default function Demo() {
                     className="glass animate-pop flex items-center justify-between gap-3 rounded-2xl p-4 text-left"
                     style={{ animationDelay: `${i * 0.12}s` }}
                   >
-                    <span className="font-bold text-[#16334f]">{t}</span>
+                    <span className="font-bold text-[#111318]">{t}</span>
                     <button
                       onClick={() => delegate(t)}
                       className="glass-btn glass-btn-solid shrink-0 !px-4 !py-2 !text-sm"
@@ -296,7 +300,7 @@ export default function Demo() {
                   </div>
                 ))}
               </div>
-              <button onClick={reset} className="mt-5 text-sm font-bold text-[#16334f]/45 underline decoration-dotted underline-offset-4 hover:text-[#16334f]/70">
+              <button onClick={reset} className="mt-5 text-sm font-bold text-[#111318]/45 underline decoration-dotted underline-offset-4 hover:text-[#111318]/70">
                 start over
               </button>
             </div>
@@ -310,23 +314,23 @@ export default function Demo() {
                   <MintBlob size={40} />
                 </span>
                 <div>
-                  <p className="font-display text-lg font-semibold text-[#16334f]">Daylist is on it</p>
-                  <p className="text-sm font-bold text-[#16334f]/50">“{delegated}”</p>
+                  <p className="font-display text-lg font-semibold text-[#111318]">Daylist is on it</p>
+                  <p className="text-sm font-bold text-[#111318]/50">“{delegated}”</p>
                 </div>
               </div>
 
               <div className="mt-6 space-y-3">
                 {steps.includes('read') && (
-                  <div className="animate-pop flex items-center gap-2.5 text-[15px] font-bold text-[#16334f]/75">
+                  <div className="animate-pop flex items-center gap-2.5 text-[15px] font-bold text-[#111318]/75">
                     <CheckBadge /> Read the task
                   </div>
                 )}
                 {steps.includes('recall') && (
-                  <div className="animate-pop flex items-start gap-2.5 text-[15px] font-bold text-[#16334f]/75">
+                  <div className="animate-pop flex items-start gap-2.5 text-[15px] font-bold text-[#111318]/75">
                     <CheckBadge />
                     <span>
                       Recalled what I know about you
-                      <span className="mt-0.5 block text-sm font-semibold italic text-[#16334f]/50">
+                      <span className="mt-0.5 block text-sm font-semibold italic text-[#111318]/50">
                         {story.recall}
                       </span>
                     </span>
@@ -334,11 +338,11 @@ export default function Demo() {
                 )}
                 {steps.includes('tool') && (
                   <div className="animate-pop">
-                    <div className="flex items-center gap-2.5 text-[15px] font-bold text-[#16334f]/75">
+                    <div className="flex items-center gap-2.5 text-[15px] font-bold text-[#111318]/75">
                       {decision ? <CheckBadge /> : (
                         <span className="relative inline-flex h-5 w-5 shrink-0 items-center justify-center">
                           <span className="shimmer absolute inset-0 rounded-full" />
-                          <span className="h-2 w-2 rounded-full bg-[#54a6e8]" />
+                          <span className="h-2 w-2 rounded-full bg-palette-sky" />
                         </span>
                       )}
                       <span>
@@ -346,13 +350,13 @@ export default function Demo() {
                         {decision ? story.doneStamp : story.action}
                       </span>
                     </div>
-                    <div className="glass mt-3 rounded-2xl p-4 text-[15px] font-semibold leading-relaxed text-[#16334f]/85">
+                    <div className="glass mt-3 rounded-2xl p-4 text-[15px] font-semibold leading-relaxed text-[#111318]/85">
                       {editing ? (
                         <textarea
                           value={editedDraft}
                           onChange={(e) => setEditedDraft(e.target.value)}
                           rows={3}
-                          className="w-full resize-none rounded-xl bg-white/60 p-3 font-semibold outline-none ring-2 ring-[#54a6e8]/40"
+                          className="w-full resize-none rounded-xl bg-white/60 p-3 font-semibold outline-none ring-2 ring-palette-sky"
                         />
                       ) : (
                         <>
@@ -367,7 +371,7 @@ export default function Demo() {
 
               {phase === 'approval' && (
                 <div className="glass-deep animate-pop mt-5 rounded-2xl p-4">
-                  <p className="font-display text-base font-semibold text-[#16334f]">
+                  <p className="font-display text-base font-semibold text-[#111318]">
                     {editing ? 'Make it yours, then send it off' : story.approval}
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2.5">
@@ -389,14 +393,14 @@ export default function Demo() {
                       </>
                     )}
                   </div>
-                  <p className="mt-2.5 text-xs font-bold text-[#16334f]/45">
+                  <p className="mt-2.5 text-xs font-bold text-[#111318]/45">
                     your approval rules called this one in — nothing sends without you
                   </p>
                 </div>
               )}
 
               {decision === 'rejected' && (
-                <p className="animate-pop mt-4 text-sm font-bold italic text-[#16334f]/60">
+                <p className="animate-pop mt-4 text-sm font-bold italic text-[#111318]/60">
                   Okay — kept it as a draft. Remembered: you like to send these yourself.
                 </p>
               )}
@@ -406,21 +410,21 @@ export default function Demo() {
           {/* -------- done -------- */}
           {phase === 'done' && (
             <div className="animate-pop relative flex flex-col items-center pt-6 text-center">
-              {[0, 1, 2, 3, 4].map((i) => (
+              {['bg-palette-peach', 'bg-palette-coral', 'bg-palette-butter', 'bg-palette-sky', 'bg-palette-lavender'].map((c, i) => (
                 <span
                   key={i}
-                  className="animate-rise absolute bottom-16 h-2.5 w-2.5 rounded-full bg-[#8fe3b0]"
+                  className={`animate-rise absolute bottom-16 h-2.5 w-2.5 rounded-full ${c}`}
                   style={{ left: `${18 + i * 16}%`, animationDelay: `${i * 0.4}s`, opacity: 0 }}
                 />
               ))}
               <span className="glass inline-flex h-20 w-20 items-center justify-center rounded-full">
                 <MintBlob size={64} />
               </span>
-              <p className="font-display mt-5 text-2xl font-semibold text-[#16334f]">
+              <p className="font-display mt-5 text-2xl font-semibold text-[#111318]">
                 {decision === 'rejected' ? 'Noted — it stays with you.' : 'All sorted — and it’s not even 9am.'}
               </p>
               <span className="glass-chip mt-4 !text-base">≈ 26 minutes handed back to your morning</span>
-              <p className="mt-3 max-w-sm text-[15px] font-semibold text-[#16334f]/55">
+              <p className="mt-3 max-w-sm text-[15px] font-semibold text-[#111318]/55">
                 That’s a slow coffee. A chapter of your book. A little bit of nothing-at-all.
               </p>
               <div className="mt-7 flex flex-wrap justify-center gap-3">

@@ -2,6 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: 'Recoleta';
+  src: url('/fonts/recoleta/recoleta-regular.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -33,11 +41,12 @@
   }
   html {
     scroll-behavior: smooth;
+    scroll-snap-type: y proximity;
   }
   body {
-    font-family: 'Nunito', ui-rounded, system-ui, sans-serif;
-    background: #dff0ff;
-    color: #16334f;
+    font-family: 'Google Sans', ui-sans-serif, system-ui, sans-serif;
+    background: #ffffff;
+    color: #111318;
     overflow-x: hidden;
     -webkit-font-smoothing: antialiased;
   }
@@ -45,53 +54,106 @@
 
 @layer components {
   .font-display {
-    font-family: 'Fredoka', 'Nunito', ui-rounded, sans-serif;
+    font-family: 'Recoleta', ui-serif, serif;
   }
 
-  /* ---------- glass ---------- */
-  .glass {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.22));
-    backdrop-filter: blur(18px) saturate(1.5);
-    -webkit-backdrop-filter: blur(18px) saturate(1.5);
-    border: 1px solid rgba(255, 255, 255, 0.65);
+  /* ---------- liquid glass ----------
+     Borderless by design: the edge is drawn purely by inset highlights — a soft
+     top rim, a brighter bottom rim, and an all-round inner haze — instead of a
+     1px ring, so nothing reads as a hard white outline. The ::after layer is a
+     specular sweep that slides across on hover. */
+  .glass,
+  .glass-surface,
+  .glass-btn,
+  .glass-chip,
+  .glass-card,
+  .glass-deep {
+    position: relative;
+    border: none;
+    background-color: rgba(255, 255, 255, 0.55);
+    background-image: linear-gradient(
+      -75deg,
+      rgba(255, 255, 255, 0.1),
+      rgba(255, 255, 255, 0.3),
+      rgba(255, 255, 255, 0.1)
+    );
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     box-shadow:
-      0 10px 40px rgba(23, 68, 124, 0.14),
-      inset 0 1px 0 rgba(255, 255, 255, 0.85);
+      inset 0 1px 4px rgba(255, 255, 255, 0.667),
+      inset 0 -4px 4px rgba(255, 255, 255, 0.85),
+      inset 0 0 14px rgba(229, 229, 229, 0.55),
+      0 11px 28px rgba(0, 0, 0, 0.07),
+      0 23px 31px rgba(0, 0, 0, 0.05);
+    transition: 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+  }
+  /* @apply copies a class's own declarations but not its pseudo-element rules,
+     so the sweep is declared against every concrete class that needs it. */
+  .glass::after,
+  .glass-surface::after,
+  .glass-btn::after,
+  .glass-chip::after,
+  .glass-card::after,
+  .glass-deep::after {
+    content: '';
+    position: absolute;
+    top: 0.5px;
+    left: 0.5px;
+    width: calc(100% - 1px);
+    height: calc(100% - 1px);
+    border-radius: inherit;
+    background-image: linear-gradient(
+      -45deg,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.5) 40%,
+      rgba(255, 255, 255, 0.5) 50%,
+      rgba(255, 255, 255, 0) 55%
+    );
+    background-size: 200% 200%;
+    background-position: 0% 50%;
+    background-repeat: no-repeat;
+    mix-blend-mode: screen;
+    pointer-events: none;
+    z-index: 3;
+    overflow: clip;
+    transition: background-position 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+  }
+  .glass:hover::after,
+  .glass-surface:hover::after,
+  .glass-btn:hover::after,
+  .glass-chip:hover::after,
+  .glass-card:hover::after,
+  .glass-deep:hover::after {
+    background-position: 25% 50%;
   }
   .glass-deep {
-    background: linear-gradient(150deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.4));
-    backdrop-filter: blur(26px) saturate(1.6);
-    -webkit-backdrop-filter: blur(26px) saturate(1.6);
-    border: 1px solid rgba(255, 255, 255, 0.75);
-    box-shadow:
-      0 24px 70px rgba(23, 68, 124, 0.18),
-      inset 0 1px 0 rgba(255, 255, 255, 0.95),
-      inset 0 -1px 0 rgba(255, 255, 255, 0.3);
+    background-color: rgba(255, 255, 255, 0.72);
   }
+
   .glass-btn {
-    @apply glass font-display inline-flex cursor-pointer items-center justify-center gap-2 rounded-full px-7 py-3.5 text-lg font-semibold text-[#16334f] transition-all duration-300;
+    @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-full px-7 py-3.5 text-lg font-semibold text-[#111318];
   }
   .glass-btn:hover {
-    transform: translateY(-2px);
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.4));
-    box-shadow:
-      0 16px 50px rgba(23, 68, 124, 0.22),
-      inset 0 1px 0 rgba(255, 255, 255, 0.95);
+    transform: scale(0.975);
   }
   .glass-btn:active {
-    transform: translateY(0px) scale(0.98);
+    transform: scale(0.95);
   }
   .glass-btn-solid {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.7));
+    background-color: rgba(255, 255, 255, 0.78);
+  }
+  .glass-card {
+    @apply rounded-3xl;
+    background-color: rgba(255, 255, 255, 0.7);
   }
   .glass-chip {
-    @apply glass rounded-full px-4 py-1.5 text-sm font-bold tracking-wide text-[#2a5acc]/80;
+    @apply rounded-full px-4 py-1.5 text-sm font-bold tracking-wide text-[#111318]/80;
   }
 }
 
 /* ---------- sky + clouds ---------- */
 .sky-gradient {
-  background: linear-gradient(180deg, #4a9bdf 0%, #6fb4ea 30%, #a5d3f4 58%, #dff0ff 82%, #eef8ff 100%);
+  background: linear-gradient(180deg, #4a9bdf 0%, #6fb4ea 30%, #a5d3f4 58%, #EAF3FF 82%, #EAF3FF 100%);
 }
 
 .cloud-blob {
@@ -219,5 +281,5 @@
 
 ::selection {
   background: #bfe0ff;
-  color: #16334f;
+  color: #111318;
 }

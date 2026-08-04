@@ -5,6 +5,18 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        palette: {
+          blue: "#EAF3FF",
+          mint: "#DFF2E1",
+          cream: "#FFF7E6",
+          white: "#FFFFFF",
+          lavender: "#CDC4FF",
+          peach: "#FFD9A6",
+          coral: "#FFC1B6",
+          butter: "#FFED9A",
+          sky: "#B9E3FF",
+          stone: "#A8A29E",
+        },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
