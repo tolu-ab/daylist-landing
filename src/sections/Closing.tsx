@@ -1,4 +1,3 @@
-import { useEffect, useRef, useState } from 'react'
 import Clouds from '../components/Clouds'
 import LogoMark, { LOGO_TIGHT_VIEWBOX } from '../components/LogoMark'
 
@@ -48,25 +47,6 @@ const FEATURES = [
 ]
 
 export default function Closing() {
-  const dioramaRef = useRef<HTMLDivElement>(null)
-  const [inView, setInView] = useState(false)
-
-  useEffect(() => {
-    const el = dioramaRef.current
-    if (!el) return
-    const io = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setInView(true)
-          io.disconnect()
-        }
-      },
-      { threshold: 0.25 },
-    )
-    io.observe(el)
-    return () => io.disconnect()
-  }, [])
-
   return (
     <section id="get" className="sky-gradient relative flex min-h-[92svh] flex-col overflow-hidden">
       <Clouds count={4} />
