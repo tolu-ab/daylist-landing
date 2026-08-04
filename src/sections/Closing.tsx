@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import Clouds from '../components/Clouds'
 import LogoMark, { LOGO_TIGHT_VIEWBOX } from '../components/LogoMark'
 
@@ -47,6 +48,25 @@ const FEATURES = [
 ]
 
 export default function Closing() {
+  const dioramaRef = useRef<HTMLDivElement>(null)
+  const [inView, setInView] = useState(false)
+
+  useEffect(() => {
+    const el = dioramaRef.current
+    if (!el) return
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setInView(true)
+          io.disconnect()
+        }
+      },
+      { threshold: 0.25 },
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
+
   return (
     <section id="get" className="sky-gradient relative flex min-h-[92svh] flex-col overflow-hidden">
       <Clouds count={4} />
@@ -55,7 +75,7 @@ export default function Closing() {
         <h2 className="font-display text-4xl font-semibold leading-[1.08] tracking-tight text-[#111318] sm:text-6xl">
           More time for
           <br />
-          the good stuff.
+          everywhere your day happens.
         </h2>
         <p className="mt-5 max-w-md text-lg font-semibold text-[#111318]/65">
           Daylist works through the apps you already use — Gmail, Calendar, Slack, Notion, Canva, and more.
