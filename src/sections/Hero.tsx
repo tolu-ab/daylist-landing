@@ -8,7 +8,7 @@ export default function Hero() {
     <div className="sky-gradient relative flex min-h-[100svh] flex-col overflow-hidden">
         {/* full-bleed meadow artwork, top edge melted into the CSS sky */}
         <img
-          src="/art/hero-meadow.png"
+          src="/art/hero-meadow.jpeg"
           alt=""
           className="pointer-events-none absolute inset-0 h-full w-full object-cover"
           style={{

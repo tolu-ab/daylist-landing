@@ -13,7 +13,7 @@ people play and picnic around him.
 ## Stack
 
 React + TypeScript + Vite + Tailwind CSS 3 + shadcn/ui. The artwork is AI-generated
-2K renders (`public/art/hero-meadow.png`, `public/art/diorama.png`,
+2K renders (`public/art/hero-meadow.jpeg`, `public/art/diorama.png`,
 `public/art/footer-meadow.png` — too large for the git push API, not committed);
 sky, clouds, and motion are pure CSS/SVG.
 
