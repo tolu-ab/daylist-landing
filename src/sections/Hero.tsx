@@ -13,6 +13,7 @@ export default function Hero() {
           className="pointer-events-none absolute inset-0 h-full w-full object-cover"
           style={{
             objectPosition: '50% 100%',
+            transform: 'translateY(6%)',
             maskImage: 'linear-gradient(180deg, transparent 0%, black 22%)',
             WebkitMaskImage: 'linear-gradient(180deg, transparent 0%, black 22%)',
           }}
