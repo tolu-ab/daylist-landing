@@ -31,7 +31,7 @@ export default function Hero() {
         </header>
 
         {/* headline */}
-        <div className="relative z-20 mx-auto mt-auto flex w-full max-w-3xl flex-col items-center px-6 pb-[38vh] text-center">
+        <div className="relative z-20 mx-auto mt-auto flex w-full max-w-3xl flex-col items-center px-6 pb-[44vh] text-center">
           <StatusChip />
           <h1
             className="font-display animate-pop mt-4 text-4xl font-semibold leading-[1.05] tracking-tight text-[#111318] drop-shadow-[0_2px_18px_rgba(255,255,255,0.65)] sm:text-5xl md:text-6xl"
