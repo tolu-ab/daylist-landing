@@ -1,439 +1,334 @@
-import { useEffect, useRef, useState } from 'react'
-import { MintBlob } from '../components/Plush'
+import { useCallback, useEffect, useReducer, useState, type ReactNode } from 'react'
 
-type Phase = 'capture' | 'listening' | 'inbox' | 'running' | 'approval' | 'done'
-
-type Story = {
-  recall: string
-  app: string
-  action: string
-  draft: string
-  approval: string | null
-  doneStamp: string
+type LoopItem = {
+  id: string
+  source: string
+  icon?: string
+  color: string
+  title: string
+  detail: string
+  result: string
+  resultDetail: string
 }
 
-const RAMBLE = "reply to sofia about friday's picnic… book the dentist, morning if they have one… and post the friday update in general"
-const RAMBLE_TASKS = [
-  "Reply to Sofia about Friday's picnic",
-  'Book the dentist — morning slot',
-  'Post the Friday update in #general',
-]
+const SCENARIOS = [
+  ['Northstar launch', 'revised deck'], ['pricing review', 'updated pricing'], ['client review', 'meeting notes'],
+  ['Friday update', 'status summary'], ['campaign brief', 'creative direction'], ['partner follow-up', 'next steps'],
+  ['design handoff', 'final assets'], ['roadmap review', 'open decisions'], ['team offsite', 'travel details'],
+  ['onboarding plan', 'welcome materials'], ['budget check-in', 'spend forecast'], ['research sprint', 'key findings'],
+  ['board prep', 'leadership summary'], ['product release', 'launch checklist'], ['sales proposal', 'client feedback'],
+  ['content calendar', 'draft approvals'], ['quarterly planning', 'priorities'], ['customer interview', 'takeaways'],
+  ['website refresh', 'final copy'], ['team retro', 'action items'],
+] as const
 
-const STORIES: Record<string, Story> = {
-  sofia: {
-    recall: 'Sofia likes short replies · Friday afternoons are yours',
-    app: 'Gmail',
-    action: 'drafting a reply to sofia@…',
-    draft: "Hi Sofia — yes to Friday! I'll bring the lemonade and a big blanket. 4pm at the usual spot? x",
-    approval: 'Daylist wants to send this email',
-    doneStamp: 'Sent to Sofia ✓',
-  },
-  dentist: {
-    recall: 'mornings are for errands · never before 9am',
-    app: 'Calendar',
-    action: 'booking Dr. Patel — Thu 9:30am',
-    draft: 'Thu 9:30am · Dr. Patel · cleaning, 30 min',
-    approval: null,
-    doneStamp: 'Booked — Thu 9:30am ✓',
-  },
-  update: {
-    recall: '#general tone: short, warm, one emoji max',
-    app: 'Slack',
-    action: 'drafting a post to #general',
-    draft: "Friday update: launch checklist is green, retro at 3, then we're out early ☀️",
-    approval: 'Daylist wants to post this to #general',
-    doneStamp: 'Posted to #general ✓',
-  },
-}
+const CONNECTIONS = [
+  ['Gmail', '/icons/apps/gmail.svg', 'bg-[#f5b7c4]/70'], ['Calendar', '/icons/apps/google_calendar.svg', 'bg-[#b9dcf5]/75'],
+  ['Slack', '/icons/apps/slack.svg', 'bg-[#d0c4f4]/75'], ['Canva', '/icons/apps/canva.svg', 'bg-[#bdeef0]/70'],
+  ['LinkedIn', '/icons/apps/linkedin.svg', 'bg-[#b7dafa]/70'], ['Instagram', '/icons/apps/instagram.svg', 'bg-[#f7c4d6]/70'],
+  ['Google Drive', '/icons/apps/google_drive.svg', 'bg-[#c2d8f6]/70'], ['Google Docs', '/icons/apps/google_docs.svg', 'bg-[#c5dcfa]/70'],
+  ['Google Sheets', '/icons/apps/google_sheets.svg', 'bg-[#c5ebce]/70'], ['Notion', '/icons/apps/notion.svg', 'bg-white/75'],
+  ['Granola', undefined, 'bg-[#e9d4ad]/70'],
+] as const
 
-function storyFor(task: string): Story {
-  const t = task.toLowerCase()
-  if (t.includes('sofia') || t.includes('picnic')) return STORIES.sofia
-  if (t.includes('dentist') || t.includes('book')) return STORIES.dentist
-  if (t.includes('update') || t.includes('general') || t.includes('post')) return STORIES.update
-  return {
-    recall: "nothing yet — I'll learn as we go",
-    app: 'Daylist',
-    action: `drafting a plan for “${task}”`,
-    draft: 'Step 1: gather what’s needed. Step 2: do the boring part. Step 3: hand you the fun part.',
-    approval: 'Daylist wants to start on this',
-    doneStamp: 'Plan ready ✓',
+function copyFor(source: string, subject: string, request: string) {
+  switch (source) {
+    case 'Gmail': return { title: `${subject} email`, detail: `A client asked about the ${request}`, result: `Drafted a reply about ${subject}`, resultDetail: 'Ready for your approval' }
+    case 'Calendar': return { title: `${subject} moved`, detail: `A ${request} block needs new time`, result: `Protected time for ${subject}`, resultDetail: 'Based on your free time' }
+    case 'Slack': return { title: `#launch needs you`, detail: `The team is asking for the ${request}`, result: `Pulled together the ${request}`, resultDetail: `Ready for the ${subject}` }
+    case 'Canva': return { title: `${subject} design ready`, detail: `The ${request} is ready to export`, result: `Prepared the ${subject} PDF`, resultDetail: 'Ready for your approval' }
+    case 'LinkedIn': return { title: `${subject} post draft`, detail: `A post about the ${request} is ready to review`, result: `Prepared the ${subject} post`, resultDetail: 'Waiting for your approval' }
+    case 'Instagram': return { title: `${subject} campaign draft`, detail: `The ${request} needs a final caption`, result: `Prepared the ${subject} post`, resultDetail: 'Ready for your approval' }
+    case 'Google Drive': return { title: `${subject} file updated`, detail: `The latest ${request} is ready in Drive`, result: `Attached the ${request} to the right thread`, resultDetail: 'Ready for your approval' }
+    case 'Google Docs': return { title: `${subject} brief changed`, detail: `New context was added to the ${request}`, result: `Collected the ${request} into the plan`, resultDetail: `Ready for the ${subject}` }
+    case 'Google Sheets': return { title: `${subject} tracker update`, detail: `The ${request} has new owners and dates`, result: `Updated the ${subject} tracker`, resultDetail: 'Based on the latest schedule' }
+    case 'Notion': return { title: `${subject} workspace update`, detail: `The ${request} has new decisions to sort`, result: `Turned decisions into follow-ups`, resultDetail: `Added to the ${subject} plan` }
+    default: return { title: `${subject} meeting notes`, detail: `Key ${request} are ready to review`, result: `Pulled follow-ups from the notes`, resultDetail: `Added to the ${subject} plan` }
   }
 }
 
-function MicIcon({ className = 'h-5 w-5' }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <rect x="9" y="3" width="6" height="11" rx="3" />
-      <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
-    </svg>
-  )
+const LOOP_ITEMS: LoopItem[] = SCENARIOS.flatMap(([subject, request], index) =>
+  CONNECTIONS.map(([source, icon, color]) => ({
+    id: `${source}-${index}`,
+    source,
+    icon,
+    color,
+    ...copyFor(source, subject, request),
+  })),
+)
+
+const WORKING_STATUSES = ['planning', 'sorting', 'drafting', 'working']
+const HANDLED_STATUSES = ['handled', 'scheduled', 'ready', 'drafted']
+
+const SUPPORTED_APPS = [
+  { name: 'Gmail', source: 'Gmail', icon: '/icons/apps/gmail.svg', tone: 'bg-[#f5b7c4]/60' },
+  { name: 'Google Calendar', source: 'Calendar', icon: '/icons/apps/google_calendar.svg', tone: 'bg-[#b9dcf5]/65' },
+  { name: 'Slack', source: 'Slack', icon: '/icons/apps/slack.svg', tone: 'bg-[#d0c4f4]/65' },
+  { name: 'Canva', source: 'Canva', icon: '/icons/apps/canva.svg', tone: 'bg-[#bdeef0]/70' },
+  { name: 'LinkedIn', source: 'LinkedIn', icon: '/icons/apps/linkedin.svg', tone: 'bg-[#b7dafa]/70' },
+  { name: 'Instagram', source: 'Instagram', icon: '/icons/apps/instagram.svg', tone: 'bg-[#f7c4d6]/70' },
+  { name: 'Google Drive', source: 'Google Drive', icon: '/icons/apps/google_drive.svg', tone: 'bg-[#c5dcfa]/70' },
+  { name: 'Google Docs', source: 'Google Docs', icon: '/icons/apps/google_docs.svg', tone: 'bg-[#c5dcfa]/70' },
+  { name: 'Google Sheets', source: 'Google Sheets', icon: '/icons/apps/google_sheets.svg', tone: 'bg-[#c5ebce]/70' },
+  { name: 'Notion', source: 'Notion', icon: '/icons/apps/notion.svg', tone: 'bg-white/75' },
+  { name: 'Granola', source: 'Granola', tone: 'bg-[#e9d4ad]/70' },
+]
+
+type PipelineState = {
+  inbox: [LoopItem, LoopItem]
+  working: LoopItem | null
+  completed: LoopItem | null
+  nextId: string
+  step: number
 }
 
-function CheckBadge() {
+type PipelineAction =
+  | { type: 'advance'; items: LoopItem[] }
+  | { type: 'reconfigure'; items: LoopItem[] }
+  | { type: 'prioritize'; items: LoopItem[]; source: string }
+
+function createInitialState(items: LoopItem[]): PipelineState {
+  return {
+    inbox: [items[0], items[1] ?? items[0]],
+    working: null,
+    completed: null,
+    nextId: (items[2] ?? items[0]).id,
+    step: 0,
+  }
+}
+
+function pipelineReducer(state: PipelineState, action: PipelineAction): PipelineState {
+  const { items } = action
+
+  if (action.type === 'prioritize') {
+    const sourceItems = items.filter((item) => item.source === action.source)
+    if (!sourceItems.length) return state
+    const candidate = sourceItems[(state.step + 1) % sourceItems.length]
+    return { ...state, nextId: candidate.id }
+  }
+
+  if (action.type === 'reconfigure') {
+    return items.some((item) => item.id === state.nextId)
+      ? state
+      : { ...state, nextId: items[0].id }
+  }
+
+  if (99 - state.step <= 2) return createInitialState(items)
+  const nextIndex = items.findIndex((item) => item.id === state.nextId)
+  const nextItem = items[nextIndex === -1 ? 0 : nextIndex]
+  const afterNext = items[(nextIndex === -1 ? 1 : nextIndex + 1) % items.length]
+
+  return {
+    inbox: [state.inbox[1], nextItem],
+    working: state.inbox[0],
+    completed: state.working,
+    nextId: afterNext.id,
+    step: state.step + 1,
+  }
+}
+
+function AppIcon({ src, label, className = 'h-4 w-4' }: { src?: string; label: string; className?: string }) {
+  if (!src) return <span aria-hidden className={`${className} flex items-center justify-center rounded-full bg-[#111318]/75 text-[8px] font-black text-white`}>{label.slice(0, 1)}</span>
+  return <img src={src} alt="" className={`${className} object-contain`} />
+}
+
+function ColumnStatus({ label, color }: { label: string; color: string }) {
   return (
-    <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#54c489] text-white shadow-sm">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3">
-        <path d="M4 12.5 9.5 18 20 6.5" />
-      </svg>
+    <span className="glass-chip inline-flex items-center gap-2 !text-[10px] font-extrabold uppercase tracking-[0.14em]">
+      <span className="relative flex h-2 w-2 shrink-0">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-75" style={{ backgroundColor: color }} />
+        <span className="relative inline-flex h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
+      </span>
+      {label}
     </span>
   )
 }
 
+function SourceCard({ item, count, className = '', muted = false }: { item: LoopItem; count?: number; className?: string; muted?: boolean }) {
+  return (
+    <article className={`relative h-[7.5rem] overflow-visible rounded-[1.35rem] border border-white/90 bg-[#faf7f1]/95 p-2.5 text-left shadow-[0_14px_30px_rgba(1,10,24,0.28)] sm:h-[8rem] sm:p-3 ${muted ? 'opacity-55' : ''} ${className}`}>
+      <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.12em] text-[#111827]/70 ${item.color}`}>
+        <AppIcon src={item.icon} label={item.source} className="h-3.5 w-3.5" />
+        {item.source}
+      </span>
+      {count !== undefined && (
+        <span className="demo-notification-badge" aria-label={`${count} new ${item.source} notifications`}>
+          <span className="animate-pop">{count}</span>
+        </span>
+      )}
+      <p className="mt-3 line-clamp-1 text-base font-bold text-[#172033]">{item.title}</p>
+      <p className="mt-1 line-clamp-2 text-sm font-semibold leading-relaxed text-[#4f5c6d]">{item.detail}</p>
+    </article>
+  )
+}
+
+function CompletedCard({ item, className = '' }: { item: LoopItem; className?: string }) {
+  return (
+    <article className={`relative h-[7.5rem] overflow-visible rounded-[1.35rem] border border-[#ecfff3]/90 bg-[#e8f4ec]/95 p-2.5 text-left shadow-[0_14px_30px_rgba(1,10,24,0.28)] sm:h-[8rem] sm:p-3 ${className}`}>
+      <div className="flex items-center justify-between gap-2">
+        <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.12em] text-[#111827]/70 ${item.color}`}>
+          <AppIcon src={item.icon} label={item.source} className="h-3.5 w-3.5" />
+          {item.source}
+        </span>
+        <span className="rounded-full bg-[#bdebd4]/70 px-2 py-1 text-[10px] font-bold text-[#287053]">done</span>
+      </div>
+      <p className="mt-3 line-clamp-1 text-base font-bold text-[#172033]">{item.result}</p>
+      <p className="mt-1 line-clamp-2 text-sm font-semibold leading-relaxed text-[#456153]">{item.resultDetail}</p>
+    </article>
+  )
+}
+
+function QueuedPreview({ item }: { item: LoopItem }) {
+  return (
+    <div className="demo-pipeline-incoming flex h-9 items-center gap-2 rounded-xl border border-white/75 bg-[#eef4f6]/90 px-3 text-left text-xs font-bold text-[#465566]">
+      <AppIcon src={item.icon} label={item.source} className="h-3.5 w-3.5" />
+      <span className="truncate">{item.source} · next up</span>
+    </div>
+  )
+}
+
+function PipelineColumn({ status, color, children }: { status: string; color: string; children: ReactNode }) {
+  return (
+    <section className="rounded-[1.6rem] border border-white/15 bg-[#03192d]/58 p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-sm sm:p-4">
+      <div className="mb-4 flex justify-end">
+        <ColumnStatus label={status} color={color} />
+      </div>
+      {children}
+    </section>
+  )
+}
+
+export function DemoPipeline({
+  items,
+  prioritySources,
+  onPriorityApplied,
+}: {
+  items: LoopItem[]
+  prioritySources: string[]
+  onPriorityApplied: (source: string) => void
+}) {
+  const [state, dispatch] = useReducer(pipelineReducer, items, createInitialState)
+
+  useEffect(() => {
+    const interval = window.setInterval(() => dispatch({ type: 'advance', items }), 3000)
+    return () => window.clearInterval(interval)
+  }, [items])
+
+  useEffect(() => {
+    dispatch({ type: 'reconfigure', items })
+  }, [items])
+
+  useEffect(() => {
+    const source = prioritySources[0]
+    if (!source) return
+    dispatch({ type: 'prioritize', items, source })
+    onPriorityApplied(source)
+  }, [items, onPriorityApplied, prioritySources])
+
+  const [inboxCurrent, inboxNext] = state.inbox
+  const working = state.working
+  const completed = state.completed
+  const remainingNotifications = Math.max(0, 99 - state.step)
+  const workingStatus = WORKING_STATUSES[state.step % WORKING_STATUSES.length]
+  const handledStatus = HANDLED_STATUSES[state.step % HANDLED_STATUSES.length]
+
+  return (
+    <div className="w-full pb-4">
+      <div className="hidden min-w-[46rem] grid-cols-3 gap-4 overflow-x-auto md:grid">
+        <PipelineColumn status="incoming" color="#54a6e8">
+          <div className="flex flex-col gap-2">
+            <SourceCard key={`inbox-${state.step}-${inboxCurrent.id}`} item={inboxCurrent} count={remainingNotifications} className="demo-pipeline-promote" />
+            <QueuedPreview key={`incoming-${state.step}-${inboxNext.id}`} item={inboxNext} />
+          </div>
+        </PipelineColumn>
+
+        <PipelineColumn status={workingStatus} color="#f2b348">
+          {working
+            ? <SourceCard key={`working-${state.step}-${working.id}`} item={working} className="demo-pipeline-working" />
+            : <div className="flex h-[8rem] items-center justify-center rounded-[1.35rem] border border-dashed border-white/35 bg-[#071d31]/45 px-5 text-center text-sm font-semibold text-white/70">Daylist picks up the next item.</div>}
+        </PipelineColumn>
+
+        <PipelineColumn status={handledStatus} color="#54c489">
+          {completed
+            ? <CompletedCard key={`completed-${state.step}-${completed.id}`} item={completed} className="demo-pipeline-complete" />
+            : <div className="flex h-[8rem] items-center justify-center rounded-[1.35rem] border border-dashed border-white/35 bg-[#071d31]/45 px-5 text-center text-sm font-semibold text-white/70">Handled work lands here.</div>}
+        </PipelineColumn>
+      </div>
+
+      <div className="flex flex-col gap-3 md:hidden">
+        <PipelineColumn status="incoming" color="#54a6e8">
+          <div className="flex flex-col gap-2">
+            <SourceCard key={`mobile-inbox-${state.step}-${inboxCurrent.id}`} item={inboxCurrent} count={remainingNotifications} className="demo-pipeline-promote" />
+            <QueuedPreview key={`mobile-incoming-${state.step}-${inboxNext.id}`} item={inboxNext} />
+          </div>
+        </PipelineColumn>
+        <div className="flex justify-center text-lg font-bold text-white/75" aria-hidden>↓</div>
+        <PipelineColumn status={workingStatus} color="#f2b348">
+          {working
+            ? <SourceCard key={`mobile-working-${state.step}-${working.id}`} item={working} className="demo-pipeline-working" />
+            : <div className="flex h-[8rem] items-center justify-center rounded-[1.35rem] border border-dashed border-white/35 bg-[#071d31]/45 px-5 text-center text-sm font-semibold text-white/70">Daylist picks up the next item.</div>}
+        </PipelineColumn>
+        <div className="flex justify-center text-lg font-bold text-white/75" aria-hidden>↓</div>
+        <PipelineColumn status={handledStatus} color="#54c489">
+          {completed
+            ? <CompletedCard key={`mobile-completed-${state.step}-${completed.id}`} item={completed} className="demo-pipeline-complete" />
+            : <div className="flex h-[8rem] items-center justify-center rounded-[1.35rem] border border-dashed border-white/35 bg-[#071d31]/45 px-5 text-center text-sm font-semibold text-white/70">Handled work lands here.</div>}
+        </PipelineColumn>
+      </div>
+    </div>
+  )
+}
+
 export default function Demo() {
-  const [phase, setPhase] = useState<Phase>('capture')
-  const [typed, setTyped] = useState('')
-  const [tasks, setTasks] = useState<string[]>([])
-  const [transcriptLen, setTranscriptLen] = useState(0)
-  const [delegated, setDelegated] = useState<string | null>(null)
-  const [steps, setSteps] = useState<string[]>([])
-  const [draftLen, setDraftLen] = useState(0)
-  const [decision, setDecision] = useState<'approved' | 'rejected' | null>(null)
-  const [editing, setEditing] = useState(false)
-  const [editedDraft, setEditedDraft] = useState('')
-  const timers = useRef<number[]>([])
+  const [connectedSources, setConnectedSources] = useState(() => ['Gmail', 'Calendar', 'Slack', 'Granola'])
+  const [prioritySources, setPrioritySources] = useState<string[]>([])
+  const connectedItems = LOOP_ITEMS.filter((item) => connectedSources.includes(item.source))
 
-  const later = (ms: number, fn: () => void) => {
-    timers.current.push(window.setTimeout(fn, ms))
-  }
-  useEffect(() => () => timers.current.forEach((t) => clearTimeout(t)), [])
+  const markPriorityApplied = useCallback((source: string) => {
+    setPrioritySources((current) => current[0] === source ? current.slice(1) : current.filter((item) => item !== source))
+  }, [])
 
-  const story = delegated ? storyFor(delegated) : null
-
-  /* ---- ramble: transcribe, then split into tasks ---- */
-  useEffect(() => {
-    if (phase !== 'listening') return
-    const iv = window.setInterval(() => {
-      setTranscriptLen((n) => {
-        if (n >= RAMBLE.length) {
-          clearInterval(iv)
-          return n
-        }
-        return n + 2
-      })
-    }, 34)
-    timers.current.push(iv)
-    return () => clearInterval(iv)
-  }, [phase])
-
-  useEffect(() => {
-    if (phase === 'listening' && transcriptLen >= RAMBLE.length) {
-      later(650, () => {
-        setTasks(RAMBLE_TASKS)
-        setPhase('inbox')
-      })
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [transcriptLen, phase])
-
-  /* ---- run choreography ---- */
-  useEffect(() => {
-    if (phase !== 'running' || !story) return
-    setSteps([])
-    setDraftLen(0)
-    later(500, () => setSteps(['read']))
-    later(1600, () => setSteps(['read', 'recall']))
-    later(2800, () => setSteps(['read', 'recall', 'tool']))
-    later(3100, () => {
-      const iv = window.setInterval(() => {
-        setDraftLen((n) => {
-          if (n >= story.draft.length) {
-            clearInterval(iv)
-            return n
-          }
-          return n + 1
-        })
-      }, 26)
-      timers.current.push(iv)
+  function toggleConnection(source: string) {
+    const isConnecting = !connectedSources.includes(source)
+    if (isConnecting) setPrioritySources((current) => [...current, source])
+    setConnectedSources((current) => {
+      if (current.includes(source)) return current.length === 1 ? current : current.filter((app) => app !== source)
+      return [...current, source]
     })
-    later(3100 + story.draft.length * 26 + 700, () => {
-      if (story.approval) setPhase('approval')
-      else {
-        setDecision('approved')
-        later(1400, () => setPhase('done'))
-      }
-    })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, delegated])
-
-  const submitTyped = () => {
-    const t = typed.trim()
-    if (!t) return
-    setTasks([t])
-    setTyped('')
-    setPhase('inbox')
-  }
-
-  const delegate = (task: string) => {
-    setDelegated(task)
-    setEditedDraft(storyFor(task).draft)
-    setPhase('running')
-  }
-
-  const reset = () => {
-    timers.current.forEach((t) => clearTimeout(t))
-    timers.current = []
-    setPhase('capture')
-    setTasks([])
-    setTranscriptLen(0)
-    setDelegated(null)
-    setSteps([])
-    setDraftLen(0)
-    setDecision(null)
-    setEditing(false)
-  }
-
-  const decide = (d: 'approved' | 'rejected') => {
-    setDecision(d)
-    setEditing(false)
-    later(1500, () => setPhase('done'))
   }
 
   return (
-    <section id="demo" className="relative overflow-hidden bg-gradient-to-b from-palette-cream via-[#FFFCF5] to-palette-peach/50 py-24 sm:py-32">
-      {/* warm ambient glow — the sunlit-room counterpart to the sky sections either side */}
+    <section id="demo" className="relative overflow-hidden bg-[#061426] py-20 sm:py-28">
+      <img src="/art/demo-night-lake.png" alt="" className="pointer-events-none absolute inset-0 h-full w-full object-cover" style={{ objectPosition: '50% 50%' }} />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#061426]/25 via-[#112750]/35 to-[#030b18]/65" aria-hidden />
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-        <div className="animate-float absolute -left-24 top-8 h-80 w-80 rounded-full bg-palette-peach/50 blur-3xl" />
-        <div className="animate-float absolute -right-20 top-1/3 h-96 w-96 rounded-full bg-palette-butter/45 blur-3xl" style={{ animationDelay: '-2.5s' }} />
-        <div className="animate-float absolute -bottom-16 left-1/4 h-72 w-72 rounded-full bg-palette-coral/40 blur-3xl" style={{ animationDelay: '-4.5s' }} />
+        <div className="animate-float absolute -left-24 top-16 h-80 w-80 rounded-full bg-[#3b6fae]/25 blur-3xl" />
+        <div className="animate-float absolute -right-20 top-1/3 h-96 w-96 rounded-full bg-[#6171ba]/20 blur-3xl" style={{ animationDelay: '-2.5s' }} />
       </div>
-
-      <div className="relative z-10 mx-auto max-w-2xl px-5 text-center">
-        <span className="glass-chip animate-pop">a tiny demo</span>
-        <h2 className="font-display mt-5 text-4xl font-semibold tracking-tight text-[#111318] sm:text-5xl">
-          Watch Daylist do the doing
-        </h2>
-        <p className="mt-4 text-lg font-semibold text-[#111318]/60">
-          Ramble it in, hand it over, keep the final say.
-        </p>
-      </div>
-
-      {/* device */}
-      <div className="glass-deep relative z-10 mx-auto mt-12 w-[min(94vw,42rem)] rounded-[2.2rem] p-5 sm:p-7">
-        {/* device top bar */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-palette-peach" />
-            <span className="h-2.5 w-2.5 rounded-full bg-palette-butter" />
-            <span className="h-2.5 w-2.5 rounded-full bg-palette-sky" />
-          </div>
-          <span className="glass rounded-full px-3.5 py-1 text-xs font-extrabold uppercase tracking-widest text-[#111318]/60">
-            your morning inbox
-          </span>
-        </div>
-
-        <div className="mt-6 min-h-[24rem]">
-          {/* -------- capture -------- */}
-          {phase === 'capture' && (
-            <div className="animate-pop">
-              <div className="glass flex items-center gap-3 rounded-2xl p-3 pl-5">
-                <input
-                  value={typed}
-                  onChange={(e) => setTyped(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && submitTyped()}
-                  placeholder="Dump a task here…"
-                  className="w-full bg-transparent text-base font-bold text-[#111318] outline-none placeholder:text-[#111318]/40"
-                />
-                {typed.trim() ? (
-                  <button onClick={submitTyped} className="glass-btn glass-btn-solid !px-4 !py-2 !text-sm">
-                    Add →
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => setPhase('listening')}
-                    className="glass-btn glass-btn-solid relative !rounded-full !p-3"
-                    aria-label="Ramble by voice"
-                  >
-                    <span className="animate-soft-pulse absolute inset-0 rounded-full border-2 border-white/80" />
-                    <MicIcon />
-                  </button>
-                )}
-              </div>
-              <p className="mt-4 text-sm font-bold text-[#111318]/50">
-                …or tap the mic and just ramble. Daylist sorts it out.
-              </p>
-            </div>
-          )}
-
-          {/* -------- listening -------- */}
-          {phase === 'listening' && (
-            <div className="animate-pop">
-              <div className="glass flex items-center gap-1.5 rounded-2xl px-5 py-4">
-                {[0, 1, 2, 3, 4, 5, 6].map((i) => (
-                  <span
-                    key={i}
-                    className="wave-bar mx-0.5 inline-block h-6 w-1.5 rounded-full bg-palette-sky"
-                    style={{ animationDelay: `${i * 0.11}s` }}
-                  />
-                ))}
-                <span className="ml-3 text-sm font-extrabold uppercase tracking-widest text-[#111318]/50">
-                  listening…
-                </span>
-              </div>
-              <p className="mt-5 min-h-[3.5rem] text-left text-lg font-semibold italic leading-relaxed text-[#111318]/80">
-                “{RAMBLE.slice(0, transcriptLen)}
-                <span className="animate-soft-pulse">▍</span>”
-              </p>
-            </div>
-          )}
-
-          {/* -------- inbox -------- */}
-          {phase === 'inbox' && (
-            <div className="animate-pop">
-              <p className="mb-4 text-left text-sm font-extrabold uppercase tracking-widest text-[#111318]/50">
-                sorted for you — hand one over
-              </p>
-              <div className="space-y-3">
-                {tasks.map((t, i) => (
-                  <div
-                    key={t}
-                    className="glass animate-pop flex items-center justify-between gap-3 rounded-2xl p-4 text-left"
-                    style={{ animationDelay: `${i * 0.12}s` }}
-                  >
-                    <span className="font-bold text-[#111318]">{t}</span>
-                    <button
-                      onClick={() => delegate(t)}
-                      className="glass-btn glass-btn-solid shrink-0 !px-4 !py-2 !text-sm"
-                    >
-                      Delegate →
-                    </button>
-                  </div>
-                ))}
-              </div>
-              <button onClick={reset} className="mt-5 text-sm font-bold text-[#111318]/45 underline decoration-dotted underline-offset-4 hover:text-[#111318]/70">
-                start over
+      <div className="relative z-10 mx-auto flex w-[min(94vw,72rem)] flex-col gap-7 px-0 sm:gap-9">
+        <div>
+          <span className="inline-flex rounded-full border border-white/25 bg-white/10 px-4 py-1.5 text-xs font-extrabold uppercase tracking-[0.15em] text-white/80 backdrop-blur-md">A live look</span>
+          <h2 className="font-display mt-4 max-w-2xl text-4xl leading-[1.04] tracking-tight text-white sm:text-5xl">Daylist turns app noise into completed tasks.</h2>
+          <p className="mt-6 text-[10px] font-extrabold uppercase tracking-[0.16em] text-white/60">Click on the apps you want to connect</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {SUPPORTED_APPS.map((app) => (
+              <button
+                key={app.name}
+                type="button"
+                aria-pressed={connectedSources.includes(app.source)}
+                onClick={() => toggleConnection(app.source)}
+                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-bold text-[#111318]/65 transition duration-200 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#111318]/75 ${app.tone} ${connectedSources.includes(app.source) ? 'shadow-[0_3px_10px_rgba(40,39,46,0.12)] ring-1 ring-[#111318]/15' : 'opacity-40 grayscale'}`}
+              >
+                {app.icon
+                  ? <img src={app.icon} alt="" className="h-3.5 w-3.5 object-contain" />
+                  : <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#111318]/75 text-[8px] font-black text-white">G</span>}
+                {app.name}
               </button>
-            </div>
-          )}
-
-          {/* -------- running / approval -------- */}
-          {(phase === 'running' || phase === 'approval') && story && (
-            <div className="animate-pop text-left">
-              <div className="flex items-center gap-3">
-                <span className="glass inline-flex h-12 w-12 items-center justify-center rounded-full">
-                  <MintBlob size={40} />
-                </span>
-                <div>
-                  <p className="font-display text-lg font-semibold text-[#111318]">Daylist is on it</p>
-                  <p className="text-sm font-bold text-[#111318]/50">“{delegated}”</p>
-                </div>
-              </div>
-
-              <div className="mt-6 space-y-3">
-                {steps.includes('read') && (
-                  <div className="animate-pop flex items-center gap-2.5 text-[15px] font-bold text-[#111318]/75">
-                    <CheckBadge /> Read the task
-                  </div>
-                )}
-                {steps.includes('recall') && (
-                  <div className="animate-pop flex items-start gap-2.5 text-[15px] font-bold text-[#111318]/75">
-                    <CheckBadge />
-                    <span>
-                      Recalled what I know about you
-                      <span className="mt-0.5 block text-sm font-semibold italic text-[#111318]/50">
-                        {story.recall}
-                      </span>
-                    </span>
-                  </div>
-                )}
-                {steps.includes('tool') && (
-                  <div className="animate-pop">
-                    <div className="flex items-center gap-2.5 text-[15px] font-bold text-[#111318]/75">
-                      {decision ? <CheckBadge /> : (
-                        <span className="relative inline-flex h-5 w-5 shrink-0 items-center justify-center">
-                          <span className="shimmer absolute inset-0 rounded-full" />
-                          <span className="h-2 w-2 rounded-full bg-palette-sky" />
-                        </span>
-                      )}
-                      <span>
-                        <span className="glass-chip !px-2.5 !py-0.5 mr-1.5 !text-xs">{story.app}</span>
-                        {decision ? story.doneStamp : story.action}
-                      </span>
-                    </div>
-                    <div className="glass mt-3 rounded-2xl p-4 text-[15px] font-semibold leading-relaxed text-[#111318]/85">
-                      {editing ? (
-                        <textarea
-                          value={editedDraft}
-                          onChange={(e) => setEditedDraft(e.target.value)}
-                          rows={3}
-                          className="w-full resize-none rounded-xl bg-white/60 p-3 font-semibold outline-none ring-2 ring-palette-sky"
-                        />
-                      ) : (
-                        <>
-                          {story.draft.slice(0, draftLen)}
-                          {draftLen < story.draft.length && <span className="animate-soft-pulse">▍</span>}
-                        </>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {phase === 'approval' && (
-                <div className="glass-deep animate-pop mt-5 rounded-2xl p-4">
-                  <p className="font-display text-base font-semibold text-[#111318]">
-                    {editing ? 'Make it yours, then send it off' : story.approval}
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2.5">
-                    {editing ? (
-                      <button onClick={() => decide('approved')} className="glass-btn glass-btn-solid !px-5 !py-2 !text-sm">
-                        Send it ✓
-                      </button>
-                    ) : (
-                      <>
-                        <button onClick={() => decide('approved')} className="glass-btn glass-btn-solid !px-5 !py-2 !text-sm">
-                          Approve
-                        </button>
-                        <button onClick={() => setEditing(true)} className="glass-btn !px-5 !py-2 !text-sm">
-                          Edit
-                        </button>
-                        <button onClick={() => decide('rejected')} className="glass-btn !px-5 !py-2 !text-sm">
-                          Reject
-                        </button>
-                      </>
-                    )}
-                  </div>
-                  <p className="mt-2.5 text-xs font-bold text-[#111318]/45">
-                    your approval rules called this one in — nothing sends without you
-                  </p>
-                </div>
-              )}
-
-              {decision === 'rejected' && (
-                <p className="animate-pop mt-4 text-sm font-bold italic text-[#111318]/60">
-                  Okay — kept it as a draft. Remembered: you like to send these yourself.
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* -------- done -------- */}
-          {phase === 'done' && (
-            <div className="animate-pop relative flex flex-col items-center pt-6 text-center">
-              {['bg-palette-peach', 'bg-palette-coral', 'bg-palette-butter', 'bg-palette-sky', 'bg-palette-lavender'].map((c, i) => (
-                <span
-                  key={i}
-                  className={`animate-rise absolute bottom-16 h-2.5 w-2.5 rounded-full ${c}`}
-                  style={{ left: `${18 + i * 16}%`, animationDelay: `${i * 0.4}s`, opacity: 0 }}
-                />
-              ))}
-              <span className="glass inline-flex h-20 w-20 items-center justify-center rounded-full">
-                <MintBlob size={64} />
-              </span>
-              <p className="font-display mt-5 text-2xl font-semibold text-[#111318]">
-                {decision === 'rejected' ? 'Noted — it stays with you.' : 'All sorted — and it’s not even 9am.'}
-              </p>
-              <span className="glass-chip mt-4 !text-base">≈ 26 minutes handed back to your morning</span>
-              <p className="mt-3 max-w-sm text-[15px] font-semibold text-[#111318]/55">
-                That’s a slow coffee. A chapter of your book. A little bit of nothing-at-all.
-              </p>
-              <div className="mt-7 flex flex-wrap justify-center gap-3">
-                <a href="#get" className="glass-btn glass-btn-solid !px-6 !py-2.5 !text-base">Get the app</a>
-                <button onClick={reset} className="glass-btn !px-6 !py-2.5 !text-base">Replay ↺</button>
-              </div>
-            </div>
-          )}
+            ))}
+          </div>
         </div>
+
+        <DemoPipeline items={connectedItems} prioritySources={prioritySources} onPriorityApplied={markPriorityApplied} />
+
       </div>
     </section>
   )

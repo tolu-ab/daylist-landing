@@ -3,11 +3,14 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 /* The states a task moves through inside Daylist, cycled in the hero so the
    chip reads as a live status rather than a static tagline. */
 const STATES = [
-  { label: 'delegated', color: '#54a6e8' },
+  { label: 'captured', color: '#54a6e8' },
+  { label: 'sorting', color: '#b98cff' },
   { label: 'working', color: '#f2b348' },
-  { label: 'needs review', color: '#b98cff' },
+  { label: 'scheduled', color: '#54c489' },
+  { label: 'replied', color: '#54c489' },
+  { label: 'created', color: '#54c489' },
+  { label: 'handled', color: '#54c489' },
   { label: 'done', color: '#54c489' },
-  { label: 'blocked', color: '#ef8080' },
 ]
 
 export default function StatusChip() {

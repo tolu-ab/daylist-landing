@@ -10,9 +10,7 @@ export default function Home() {
       <div className="snap-start">
         <Hero />
       </div>
-      <div className="snap-start">
-        <Demo />
-      </div>
+      <Demo />
       <div className="snap-start">
         <Closing />
       </div>
